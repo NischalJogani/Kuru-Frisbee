@@ -1,0 +1,341 @@
+{% extends "base.html" %} {% block title %}Frisbee Tracker - Live Scores &
+Leaderboard{% endblock %} {% block content %}
+<div class="public-container">
+  <div class="hero-section">
+    <h1>Frisbee Live Tracker</h1>
+    <p>Follow live matches and track player leaderboards</p>
+  </div>
+
+  <!-- Winner Banner -->
+  <div class="winner-banner">
+    <div class="banner-overlay"></div>
+    <div class="banner-content">
+      <h2 class="banner-title">🏆 Frisbee Kurukshetra '26 Winners</h2>
+      <p class="banner-text">FLAME A Team</p>
+    </div>
+  </div>
+
+  <!-- Image Carousel -->
+  <div class="carousel-section">
+    <h2 class="carousel-title">Tournament Highlights</h2>
+    <div class="carousel-container">
+      <button class="carousel-btn prev" onclick="moveCarousel(-1)">❮</button>
+      <div class="carousel-track">
+        <div class="carousel-slide active">
+          <img src="{{ url_for('static', filename='images/WhatsApp Image 2026-02-20 at 3.11.12 PM.jpeg') }}" alt="Tournament Photo 1">
+        </div>
+        <div class="carousel-slide">
+          <img src="{{ url_for('static', filename='images/WhatsApp Image 2026-02-20 at 3.11.12 PM (1).jpeg') }}" alt="Tournament Photo 2">
+        </div>
+        <div class="carousel-slide">
+          <img src="{{ url_for('static', filename='images/WhatsApp Image 2026-02-20 at 3.11.13 PM.jpeg') }}" alt="Tournament Photo 3">
+        </div>
+        <div class="carousel-slide">
+          <img src="{{ url_for('static', filename='images/WhatsApp Image 2026-02-20 at 3.11.13 PM (1).jpeg') }}" alt="Tournament Photo 4">
+        </div>
+        <div class="carousel-slide">
+          <img src="{{ url_for('static', filename='images/WhatsApp Image 2026-02-20 at 3.11.13 PM (2).jpeg') }}" alt="Tournament Photo 5">
+        </div>
+        <div class="carousel-slide">
+          <img src="{{ url_for('static', filename='images/WhatsApp Image 2026-02-20 at 3.11.13 PM (3).jpeg') }}" alt="Tournament Photo 6">
+        </div>
+      </div>
+      <button class="carousel-btn next" onclick="moveCarousel(1)">❯</button>
+      <div class="carousel-dots">
+        <span class="dot active" onclick="currentSlide(1)"></span>
+        <span class="dot" onclick="currentSlide(2)"></span>
+        <span class="dot" onclick="currentSlide(3)"></span>
+        <span class="dot" onclick="currentSlide(4)"></span>
+        <span class="dot" onclick="currentSlide(5)"></span>
+        <span class="dot" onclick="currentSlide(6)"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-grid">
+    <!-- Matches Section -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Matches</h2>
+      </div>
+
+      <!-- Live Matches -->
+      {% set live_matches = matches|selectattr('status', 'equalto', 'live')|list
+      %} {% if live_matches %}
+      <div class="matches-subsection">
+        <h3 class="subsection-title">Live Now</h3>
+        {% for match in live_matches %}
+        <div
+          class="match-card live pulse"
+          onclick="location.href='{{ url_for('match_detail', match_id=match.id) }}'"
+        >
+          <div class="match-header-bar">
+            <div class="match-status-badge live">LIVE</div>
+            {% if match.location %}
+            <div class="match-location-badge">{{ match.location }}</div>
+            {% endif %}
+          </div>
+          <div class="match-teams">
+            <div class="team">
+              {% if match.team1.logo_url %}
+              <img
+                src="{{ match.team1.logo_url }}"
+                alt="{{ match.team1.name }}"
+                class="team-logo-index"
+                onerror="this.style.display = 'none'"
+              />
+              {% endif %}
+              <div class="team-name">{{ match.team1.name }}</div>
+              <div class="team-score">{{ match.team1_score }}</div>
+            </div>
+            <div class="vs">VS</div>
+            <div class="team">
+              {% if match.team2.logo_url %}
+              <img
+                src="{{ match.team2.logo_url }}"
+                alt="{{ match.team2.name }}"
+                class="team-logo-index"
+                onerror="this.style.display = 'none'"
+              />
+              {% endif %}
+              <div class="team-name">{{ match.team2.name }}</div>
+              <div class="team-score">{{ match.team2_score }}</div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Upcoming Matches -->
+      {% set upcoming_matches = matches|selectattr('status', 'equalto',
+      'scheduled')|list %} {% if upcoming_matches %}
+      <div class="matches-subsection">
+        <h3 class="subsection-title">Upcoming</h3>
+        {% for match in upcoming_matches[:5] %}
+        <div class="match-card upcoming">
+          <div class="match-header-bar">
+            <div class="match-status-badge scheduled">
+              {{ match.match_date.strftime('%b %d, %H:%M') }}
+            </div>
+            {% if match.location %}
+            <div class="match-location-badge">{{ match.location }}</div>
+            {% endif %}
+          </div>
+          <div class="match-teams">
+            <div class="team">
+              {% if match.team1.logo_url %}
+              <img
+                src="{{ match.team1.logo_url }}"
+                alt="{{ match.team1.name }}"
+                class="team-logo-index"
+                onerror="this.style.display = 'none'"
+              />
+              {% endif %}
+              <div class="team-name">{{ match.team1.name }}</div>
+            </div>
+            <div class="vs">VS</div>
+            <div class="team">
+              {% if match.team2.logo_url %}
+              <img
+                src="{{ match.team2.logo_url }}"
+                alt="{{ match.team2.name }}"
+                class="team-logo-index"
+                onerror="this.style.display = 'none'"
+              />
+              {% endif %}
+              <div class="team-name">{{ match.team2.name }}</div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Completed Matches -->
+      {% set completed_matches = matches|selectattr('status', 'equalto',
+      'completed')|list %} {% if completed_matches %}
+      <div class="matches-subsection">
+        <h3 class="subsection-title">Recent Results</h3>
+        {% for match in completed_matches[:5] %}
+        <div class="match-card completed">
+          <div class="match-header-bar">
+            <div class="match-status-badge completed">FINAL</div>
+            <div class="match-date-badge">
+              {{ match.match_date.strftime('%b %d') }}
+            </div>
+          </div>
+          <div class="match-teams">
+            <div
+              class="team {% if match.team1_score > match.team2_score %}winner{% endif %}"
+            >
+              {% if match.team1.logo_url %}
+              <img
+                src="{{ match.team1.logo_url }}"
+                alt="{{ match.team1.name }}"
+                class="team-logo-index"
+                onerror="this.style.display = 'none'"
+              />
+              {% endif %}
+              <div class="team-name">{{ match.team1.name }}</div>
+              <div class="team-score">{{ match.team1_score }}</div>
+            </div>
+            <div class="vs">-</div>
+            <div
+              class="team {% if match.team2_score > match.team1_score %}winner{% endif %}"
+            >
+              {% if match.team2.logo_url %}
+              <img
+                src="{{ match.team2.logo_url }}"
+                alt="{{ match.team2.name }}"
+                class="team-logo-index"
+                onerror="this.style.display = 'none'"
+              />
+              {% endif %}
+              <div class="team-name">{{ match.team2.name }}</div>
+              <div class="team-score">{{ match.team2_score }}</div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %} {% if not matches %}
+      <div class="empty-state">No matches scheduled yet.</div>
+      {% endif %}
+    </div>
+    <!-- Leaderboards Section -->
+    <div class="section leaderboards-section">
+      <div class="section-header">
+        <h2>Leaderboards</h2>
+      </div>
+
+      <!-- Tabs for different leaderboards -->
+      <div class="leaderboard-tabs">
+        <button class="tab-btn active" onclick="switchLeaderboard('scoring')">
+          Scoring
+        </button>
+        <button class="tab-btn" onclick="switchLeaderboard('assists')">
+          Assists
+        </button>
+      </div>
+
+      <!-- Scoring Leaderboard -->
+      <div id="scoring-leaderboard" class="leaderboard active">
+        {% for item in scoring_leaderboard %}
+        <div class="leaderboard-item" data-rank="{{ loop.index }}">
+          <div class="rank">
+            {% if loop.index == 1 %}#1{% elif loop.index == 2 %}#2{% elif
+            loop.index == 3 %}#3{% else %}{{ loop.index }}{% endif %}
+          </div>
+          <div class="player-info">
+            <div class="player-name">{{ item.player.name }}</div>
+            <div class="player-team">{{ item.team.name }}</div>
+          </div>
+          <div class="player-stats">
+            <div class="points">{{ item.total_points }}</div>
+            <div class="points-label">points</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          No scoring data yet. Matches need to be scored!
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Assists Leaderboard -->
+      <div id="assists-leaderboard" class="leaderboard">
+        {% for item in assist_leaderboard %}
+        <div class="leaderboard-item" data-rank="{{ loop.index }}">
+          <div class="rank">
+            {% if loop.index == 1 %}#1{% elif loop.index == 2 %}#2{% elif
+            loop.index == 3 %}#3{% else %}{{ loop.index }}{% endif %}
+          </div>
+          <div class="player-info">
+            <div class="player-name">{{ item.player.name }}</div>
+            <div class="player-team">{{ item.team.name }}</div>
+          </div>
+          <div class="player-stats">
+            <div class="points">{{ item.total_assists }}</div>
+            <div class="points-label">assists</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">No assist data yet!</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchLeaderboard(type) {
+    // Hide all leaderboards
+    document
+      .querySelectorAll(".leaderboard")
+      .forEach((lb) => lb.classList.remove("active"));
+    document
+      .querySelectorAll(".tab-btn")
+      .forEach((btn) => btn.classList.remove("active"));
+
+    // Show selected leaderboard
+    document.getElementById(type + "-leaderboard").classList.add("active");
+    event.target.classList.add("active");
+  }
+
+  // Carousel functionality
+  let currentSlideIndex = 1;
+  showSlide(currentSlideIndex);
+
+  function moveCarousel(n) {
+    showSlide(currentSlideIndex += n);
+  }
+
+  function currentSlide(n) {
+    showSlide(currentSlideIndex = n);
+  }
+
+  function showSlide(n) {
+    let slides = document.getElementsByClassName("carousel-slide");
+    let dots = document.getElementsByClassName("dot");
+    
+    if (n > slides.length) { currentSlideIndex = 1 }
+    if (n < 1) { currentSlideIndex = slides.length }
+    
+    for (let i = 0; i < slides.length; i++) {
+      slides[i].classList.remove("active");
+    }
+    for (let i = 0; i < dots.length; i++) {
+      dots[i].classList.remove("active");
+    }
+    
+    slides[currentSlideIndex - 1].classList.add("active");
+    dots[currentSlideIndex - 1].classList.add("active");
+  }
+
+  // Auto-advance carousel every 5 seconds
+  setInterval(function() {
+    moveCarousel(1);
+  }, 5000);
+
+  // Auto-refresh every 10 seconds to get live updates (optimized from 5 seconds)
+  setInterval(function () {
+    if (document.querySelector(".match-card.live")) {
+      // Only refresh if there are live matches
+      fetch(window.location.href)
+        .then((response) => response.text())
+        .then((html) => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+
+          // Update live matches only
+          const liveMatchesNew = doc.querySelector(".matches-subsection");
+          const liveMatchesOld = document.querySelector(".matches-subsection");
+          if (liveMatchesNew && liveMatchesOld) {
+            liveMatchesOld.innerHTML = liveMatchesNew.innerHTML;
+          }
+        });
+    }
+  }, 10000); // 10 seconds instead of full page reload
+</script>
+{% endblock %}

@@ -1,0 +1,345 @@
+{% extends "base.html" %} {% block title %}{{ match.team1.name }} vs {{
+match.team2.name }} - Live Match{% endblock %} {% block content %}
+<div class="scoring-container">
+  <div class="scoring-header">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary"
+      >← Back to Home</a
+    >
+    <h1>Match Details</h1>
+    <span class="match-status status-{{ match.status }}"
+      >{{ match.status|upper }}</span
+    >
+  </div>
+
+  {% if match.status == 'live' or match.status == 'completed' %}
+  <!-- Match Info Display -->
+  <div class="match-info-bar">
+    <div class="score-target">Game to {{ match.max_score }}</div>
+    <div class="gender-ratio-display">
+      <span id="ratio-display">
+        {% if match.gender_ratio %}
+        {% set current_ratios = match.get_current_ratio() %}
+        Current Ratio: {{ current_ratios['team1']|replace('_', ' ')|title }}
+        {% else %}
+        Ratio: Not Set
+        {% endif %}
+      </span>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Scoreboard -->
+  <div class="scoreboard">
+    <div class="team-score-section">
+      {% if match.status == 'live' or match.status == 'completed' %}
+      <div
+        class="possession-tag {% if match.current_offense_team_id == match.team1_id %}offense{% elif match.current_defense_team_id == match.team1_id %}defense{% endif %}"
+      >
+        {% if match.current_offense_team_id == match.team1_id %} OFFENSE {%
+        elif match.current_defense_team_id == match.team1_id %} DEFENSE {%
+        else %} NOT SET {% endif %}
+      </div>
+      {% if match.gender_ratio %}
+      {% set current_ratios = match.get_current_ratio() %}
+      <div class="ratio-tag" id="team1-ratio">
+        {{ current_ratios['team1']|replace('_', ' ')|title }}
+      </div>
+      {% endif %}
+      {% endif %} {% if match.team1.logo_url %}
+      <img
+        src="{{ match.team1.logo_url }}"
+        alt="{{ match.team1.name }} logo"
+        class="team-logo-match"
+        onerror="this.style.display = 'none'"
+      />
+      {% endif %}
+      <h2 class="team-name">{{ match.team1.name }}</h2>
+      {% if match.status == 'completed' and match.team1_score >
+      match.team2_score %}
+      <div class="winner-badge">WINNER</div>
+      {% endif %}
+      <div class="score-display">{{ match.team1_score }}</div>
+    </div>
+
+    <div class="vs-divider">VS</div>
+
+    <div class="team-score-section">
+      {% if match.status == 'live' or match.status == 'completed' %}
+      <div
+        class="possession-tag {% if match.current_offense_team_id == match.team2_id %}offense{% elif match.current_defense_team_id == match.team2_id %}defense{% endif %}"
+      >
+        {% if match.current_offense_team_id == match.team2_id %} OFFENSE {%
+        elif match.current_defense_team_id == match.team2_id %} DEFENSE {%
+        else %} NOT SET {% endif %}
+      </div>
+      {% if match.gender_ratio %}
+      <div class="ratio-tag" id="team2-ratio">
+        {{ current_ratios['team2']|replace('_', ' ')|title }}
+      </div>
+      {% endif %}
+      {% endif %} {% if match.team2.logo_url %}
+      <img
+        src="{{ match.team2.logo_url }}"
+        alt="{{ match.team2.name }} logo"
+        class="team-logo-match"
+        onerror="this.style.display = 'none'"
+      />
+      {% endif %}
+      <h2 class="team-name">{{ match.team2.name }}</h2>
+      {% if match.status == 'completed' and match.team2_score >
+      match.team1_score %}
+      <div class="winner-badge">WINNER</div>
+      {% endif %}
+      <div class="score-display">{{ match.team2_score }}</div>
+    </div>
+  </div>
+
+  {% if match.status == 'scheduled' %}
+  <!-- Show match details for scheduled matches -->
+  <div class="match-details">
+    <div class="detail-item">
+      <span class="detail-label">Date:</span>
+      <span>{{ match.match_date.strftime('%B %d, %Y at %H:%M') }}</span>
+    </div>
+    {% if match.location %}
+    <div class="detail-item">
+      <span class="detail-label">Location:</span>
+      <span>{{ match.location }}</span>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %} {% if match.status == 'live' or match.status == 'completed' %}
+  <!-- Player Statistics Display (Read-Only) -->
+  <div class="scoring-grid">
+    <div class="team-panel">
+      <h3>{{ match.team1.name }} Players</h3>
+      <div class="player-buttons">
+        {% for player in team1_players %}
+        <div class="player-card player-card-readonly">
+          <div class="player-info">
+            <span class="player-number">{{ player.jersey_number or '#' }}</span>
+            <span class="player-name">{{ player.name }}</span>
+          </div>
+          <div class="player-stats" style="font-size: 1.2em; font-weight: bold">
+            <span class="stat"
+              >Goals: {{ player.scores|selectattr('match_id', 'equalto',
+              match.id)|selectattr('action_type', 'equalto',
+              'score')|sum(attribute='points') or 0 }}</span
+            >
+            <span class="stat"
+              >Assists: {{ player.assists|selectattr('match_id', 'equalto',
+              match.id)|list|length }}</span
+            >
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="team-panel">
+      <h3>{{ match.team2.name }} Players</h3>
+      <div class="player-buttons">
+        {% for player in team2_players %}
+        <div class="player-card player-card-readonly">
+          <div class="player-info">
+            <span class="player-number">{{ player.jersey_number or '#' }}</span>
+            <span class="player-name">{{ player.name }}</span>
+          </div>
+          <div class="player-stats" style="font-size: 1.2em; font-weight: bold">
+            <span class="stat"
+              >Goals: {{ player.scores|selectattr('match_id', 'equalto',
+              match.id)|selectattr('action_type', 'equalto',
+              'score')|sum(attribute='points') or 0 }}</span
+            >
+            <span class="stat"
+              >Assists: {{ player.assists|selectattr('match_id', 'equalto',
+              match.id)|list|length }}</span
+            >
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="scoring-timeline">
+    <h3>Live Scoring Timeline</h3>
+    <div class="timeline" id="timeline">
+      {% for score in scores %}
+      <div class="timeline-item">
+        <div class="timeline-time">
+          {{ score.timestamp.strftime('%H:%M:%S') }}
+        </div>
+        <div class="timeline-content">
+          <div class="scorer-info">
+            <strong>{{ score.player.name }}</strong>
+            <span class="scorer-team">({{ score.player.team.name }})</span>
+          </div>
+          <div class="score-value">
+            +{{ score.points }} point{{ 's' if score.points != 1 else '' }}
+          </div>
+          {% if score.assist_by %}
+          <div class="score-assist">Assist: {{ score.assist_by.name }}</div>
+          {% endif %} {% if score.defense_by %}
+          <div class="score-defense">
+            Defense: {{ score.defense_by.name }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-state">No scores yet in this match.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // Auto-update using AJAX for live matches (optimized)
+  {% if match.status == 'live' %}
+  let lastUpdate = new Date();
+
+  function updateMatchData() {
+      fetch('{{ url_for("get_match_scores", match_id=match.id) }}')
+          .then(response => response.json())
+          .then(data => {
+              // Update scores with animation
+              const scoreDisplays = document.querySelectorAll('.score-display');
+
+              if (scoreDisplays[0] && scoreDisplays[0].textContent !== data.team1_score.toString()) {
+                  scoreDisplays[0].textContent = data.team1_score;
+                  scoreDisplays[0].classList.add('score-update');
+                  setTimeout(() => scoreDisplays[0].classList.remove('score-update'), 500);
+              }
+
+              if (scoreDisplays[1] && scoreDisplays[1].textContent !== data.team2_score.toString()) {
+                  scoreDisplays[1].textContent = data.team2_score;
+                  scoreDisplays[1].classList.add('score-update');
+                  setTimeout(() => scoreDisplays[1].classList.remove('score-update'), 500);
+              }
+
+              // Update current ratio display
+              if (data.team1_ratio) {
+                  const ratioDisplay = document.getElementById('ratio-display');
+                  if (ratioDisplay) {
+                      const formattedRatio = data.team1_ratio.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      ratioDisplay.textContent = 'Current Ratio: ' + formattedRatio;
+                  }
+              }
+
+              // Update team ratios
+              if (data.team1_ratio) {
+                  const team1Ratio = document.getElementById('team1-ratio');
+                  if (team1Ratio) {
+                      const formattedRatio = data.team1_ratio.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      team1Ratio.textContent = formattedRatio;
+                  }
+              }
+              if (data.team2_ratio) {
+                  const team2Ratio = document.getElementById('team2-ratio');
+                  if (team2Ratio) {
+                      const formattedRatio = data.team2_ratio.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      team2Ratio.textContent = formattedRatio;
+                  }
+              }
+
+              // Update possession tags
+              const possessionTags = document.querySelectorAll('.possession-tag');
+              if (possessionTags.length >= 2 && data.current_offense_team_id && data.current_defense_team_id) {
+                  // Update team 1 possession
+                  if (data.current_offense_team_id === {{ match.team1_id }}) {
+                      possessionTags[0].className = 'possession-tag offense';
+                      possessionTags[0].textContent = 'OFFENSE';
+                  } else if (data.current_defense_team_id === {{ match.team1_id }}) {
+                      possessionTags[0].className = 'possession-tag defense';
+                      possessionTags[0].textContent = 'DEFENSE';
+                  }
+
+                  // Update team 2 possession
+                  if (data.current_offense_team_id === {{ match.team2_id }}) {
+                      possessionTags[1].className = 'possession-tag offense';
+                      possessionTags[1].textContent = 'OFFENSE';
+                  } else if (data.current_defense_team_id === {{ match.team2_id }}) {
+                      possessionTags[1].className = 'possession-tag defense';
+                      possessionTags[1].textContent = 'DEFENSE';
+                  }
+              }
+
+              // Update player stats for team 1
+              if (data.team1_players) {
+                  const team1Panel = document.querySelectorAll('.team-panel')[0];
+                  if (team1Panel) {
+                      const playerCards = team1Panel.querySelectorAll('.player-card');
+                      data.team1_players.forEach((playerData, index) => {
+                          if (playerCards[index]) {
+                              const stats = playerCards[index].querySelector('.player-stats');
+                              if (stats) {
+                                  const statSpans = stats.querySelectorAll('.stat');
+                                  if (statSpans[0]) statSpans[0].textContent = 'Goals: ' + playerData.goals;
+                                  if (statSpans[1]) statSpans[1].textContent = 'Assists: ' + playerData.assists;
+                              }
+                          }
+                      });
+                  }
+              }
+
+              // Update player stats for team 2
+              if (data.team2_players) {
+                  const team2Panel = document.querySelectorAll('.team-panel')[1];
+                  if (team2Panel) {
+                      const playerCards = team2Panel.querySelectorAll('.player-card');
+                      data.team2_players.forEach((playerData, index) => {
+                          if (playerCards[index]) {
+                              const stats = playerCards[index].querySelector('.player-stats');
+                              if (stats) {
+                                  const statSpans = stats.querySelectorAll('.stat');
+                                  if (statSpans[0]) statSpans[0].textContent = 'Goals: ' + playerData.goals;
+                                  if (statSpans[1]) statSpans[1].textContent = 'Assists: ' + playerData.assists;
+                              }
+                          }
+                      });
+                  }
+              }
+
+              // Update timeline
+              const timeline = document.getElementById('timeline');
+              if (data.scores.length > 0) {
+                  timeline.innerHTML = data.scores.map(score => {
+                      let html = `
+                          <div class="timeline-item">
+                              <div class="timeline-time">${score.timestamp}</div>
+                              <div class="timeline-content">
+                                  <div class="scorer-info">
+                                      <strong>${score.player_name}</strong>
+                                      <span class="scorer-team">(${score.team_name})</span>
+                                  </div>
+                                  <div class="score-value">+${score.points} point${score.points != 1 ? 's' : ''}</div>`;
+
+                      if (score.assist_by) {
+                          html += `<div class="score-assist">Assist: ${score.assist_by}</div>`;
+                      }
+                      if (score.defense_by) {
+                          html += `<div class="score-defense">Defense: ${score.defense_by}</div>`;
+                      }
+
+                      html += `</div></div>`;
+                      return html;
+                  }).join('');
+              } else {
+                  timeline.innerHTML = '<div class="empty-state">No scores yet in this match.</div>';
+              }
+
+              lastUpdate = new Date();
+          })
+          .catch(error => {
+              console.error('Error fetching scores:', error);
+          });
+  }
+
+  // Update every 3 seconds
+  setInterval(updateMatchData, 3000);
+  {% endif %}
+</script>
+{% endblock %}

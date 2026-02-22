@@ -1,0 +1,371 @@
+{% extends "base.html" %} {% block title %}Leaderboard{% endblock %} {% block
+content %}
+<div class="leaderboard-container">
+  <div class="leaderboard-header">
+    <h1>Leaderboard</h1>
+    <p>Player rankings across all tournaments</p>
+  </div>
+
+  <div class="leaderboard-filter">
+    <label for="team-filter">Filter by Team:</label>
+    <select id="team-filter" onchange="filterByTeam(this.value)">
+      <option value="">All Teams</option>
+      {% for team in teams %}
+      <option
+        value="{{ team.id }}"
+        {% if team.id == selected_team_id %}selected{% endif %}
+      >
+        {{ team.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="tabs-container">
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="scoring">Scoring</button>
+      <button class="tab-btn" data-tab="assists">Assists</button>
+    </div>
+
+    <!-- Scoring Tab -->
+    <div class="tab-content active" id="scoring-tab">
+      <div class="leaderboard-table-wrapper">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th class="rank">Global</th>
+              <th class="rank">Team</th>
+              <th class="player-info">Player</th>
+              <th class="team-name">Team</th>
+              <th class="value">Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in scoring_data %}
+            <tr>
+              <td class="rank">{{ entry.global_rank }}</td>
+              <td class="rank">{{ entry.team_rank }}</td>
+              <td class="player-info">{{ entry.player.name }}</td>
+              <td class="team-name">{{ entry.team.name }}</td>
+              <td class="value">{{ entry.value }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="empty-state">No players found</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Assists Tab -->
+    <div class="tab-content" id="assists-tab">
+      <div class="leaderboard-table-wrapper">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th class="rank">Global</th>
+              <th class="rank">Team</th>
+              <th class="player-info">Player</th>
+              <th class="team-name">Team</th>
+              <th class="value">Assists</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in assist_data %}
+            <tr>
+              <td class="rank">{{ entry.global_rank }}</td>
+              <td class="rank">{{ entry.team_rank }}</td>
+              <td class="player-info">{{ entry.player.name }}</td>
+              <td class="team-name">{{ entry.team.name }}</td>
+              <td class="value">{{ entry.value }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="empty-state">No players found</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Tab switching functionality
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", function () {
+      const tabName = this.getAttribute("data-tab");
+
+      // Remove active class from all buttons and contents
+      document
+        .querySelectorAll(".tab-btn")
+        .forEach((b) => b.classList.remove("active"));
+      document
+        .querySelectorAll(".tab-content")
+        .forEach((c) => c.classList.remove("active"));
+
+      // Add active class to clicked button and corresponding content
+      this.classList.add("active");
+      document.getElementById(tabName + "-tab").classList.add("active");
+
+      // Store preference in localStorage
+      localStorage.setItem("leaderboard-active-tab", tabName);
+    });
+  });
+
+  // Load saved tab preference
+  window.addEventListener("load", function () {
+    const savedTab = localStorage.getItem("leaderboard-active-tab");
+    if (savedTab) {
+      const btn = document.querySelector(`[data-tab="${savedTab}"]`);
+      if (btn) btn.click();
+    }
+  });
+
+  function filterByTeam(teamId) {
+    const url = new URL(window.location);
+    if (teamId) {
+      url.searchParams.set("team", teamId);
+    } else {
+      url.searchParams.delete("team");
+    }
+    window.location.href = url.toString();
+  }
+</script>
+
+<style>
+  .leaderboard-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+
+  .leaderboard-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--primary-color);
+  }
+
+  .leaderboard-header h1 {
+    color: var(--primary-color);
+    margin: 0.5rem 0;
+    font-size: 2.5rem;
+  }
+
+  .leaderboard-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+  }
+
+  .leaderboard-filter {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+  }
+
+  .leaderboard-filter label {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  .leaderboard-filter select {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 1rem;
+    cursor: pointer;
+    min-width: 200px;
+  }
+
+  .leaderboard-filter select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+  }
+
+  .tabs-container {
+    margin-bottom: 2rem;
+  }
+
+  .tabs-nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .tab-btn:hover {
+    color: var(--primary-color);
+  }
+
+  .tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .leaderboard-table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+    background: var(--card-bg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .leaderboard-table thead {
+    background: var(--primary-color);
+    color: white;
+  }
+
+  .leaderboard-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .leaderboard-table th.rank {
+    text-align: center;
+    width: 80px;
+    font-size: 0.9rem;
+  }
+
+  .leaderboard-table th.player-info {
+    min-width: 150px;
+  }
+
+  .leaderboard-table th.value {
+    text-align: center;
+    width: 100px;
+  }
+
+  .leaderboard-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .leaderboard-table tbody tr:hover {
+    background: rgba(var(--primary-rgb), 0.05);
+  }
+
+  .leaderboard-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .leaderboard-table td.rank {
+    text-align: center;
+    font-weight: 700;
+    color: var(--primary-color);
+  }
+
+  .leaderboard-table td.player-info {
+    font-weight: 600;
+  }
+
+  .leaderboard-table td.team-name {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .leaderboard-table td.value {
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem !important;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  @media (max-width: 768px) {
+    .leaderboard-header h1 {
+      font-size: 1.8rem;
+    }
+
+    .leaderboard-filter {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .leaderboard-filter select {
+      min-width: 100%;
+    }
+
+    .tabs-nav {
+      gap: 0.5rem;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+      padding: 0.75rem 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .leaderboard-table th.rank,
+    .leaderboard-table td.rank {
+      width: 60px;
+    }
+
+    .leaderboard-table th.value,
+    .leaderboard-table td.value {
+      width: 70px;
+    }
+  }
+</style>
+
+{% endblock %}

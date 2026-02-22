@@ -1,0 +1,405 @@
+{% extends "base.html" %} {% block title %}Spirit of the Game Form{% endblock %}
+{% block content %}
+<div class="spirit-form-container">
+  <div class="form-header">
+    <h1>Spirit of the Game Form</h1>
+    <p>
+      Rate opposing teams based on their spirit and sportsmanship during matches
+    </p>
+  </div>
+
+  <form method="POST" class="spirit-form">
+    <div class="form-section">
+      <h2>Match Information</h2>
+
+      <div class="form-group">
+        <label for="match_id">Match</label>
+        <select name="match_id" id="match_id" required>
+          <option value="">Select a completed match...</option>
+          {% for match in matches %}
+          <option value="{{ match.id }}">
+            {{ match.team1.name }} vs {{ match.team2.name }} ({{
+            match.match_date.strftime('%Y-%m-%d %H:%M') }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="giving_team_id">Your Team</label>
+          <select name="giving_team_id" id="giving_team_id" required>
+            <option value="">Select your team...</option>
+            {% for team in teams %}
+            <option value="{{ team.id }}">{{ team.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="receiving_team_id">Opposing Team</label>
+          <select name="receiving_team_id" id="receiving_team_id" required>
+            <option value="">Select opposing team...</option>
+            {% for team in teams %}
+            <option value="{{ team.id }}">{{ team.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="day">Day</label>
+          <select name="day" id="day" required>
+            <option value="day1">Day 1</option>
+            <option value="day2">Day 2</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="stage">Stage</label>
+          <select name="stage" id="stage" required>
+            <option value="">Select a stage...</option>
+            <option value="pool">Pool Stage</option>
+            <option value="cross_pool">Cross Pool</option>
+            <option value="fifth_place">5th Place Game</option>
+            <option value="third_place">3rd Place Game</option>
+            <option value="finals">Finals</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>Spirit Criteria (Rate 1–5)</h2>
+      <p class="form-hint">1 = Poor, 3 = Average, 5 = Excellent</p>
+
+      <div class="criteria-grid">
+        <div class="criteria-group">
+          <label for="rules_knowledge">Rules Knowledge & Use</label>
+          <div class="rating-input">
+            <input
+              type="range"
+              name="rules_knowledge"
+              id="rules_knowledge"
+              min="1"
+              max="5"
+              value="3"
+              class="rating-slider"
+            />
+            <span class="rating-value" id="rules_knowledge_value">3</span>
+          </div>
+        </div>
+
+        <div class="criteria-group">
+          <label for="fouls_contact">Fouls & Body Contact</label>
+          <div class="rating-input">
+            <input
+              type="range"
+              name="fouls_contact"
+              id="fouls_contact"
+              min="1"
+              max="5"
+              value="3"
+              class="rating-slider"
+            />
+            <span class="rating-value" id="fouls_contact_value">3</span>
+          </div>
+        </div>
+
+        <div class="criteria-group">
+          <label for="fair_mindedness">Fair-Mindedness</label>
+          <div class="rating-input">
+            <input
+              type="range"
+              name="fair_mindedness"
+              id="fair_mindedness"
+              min="1"
+              max="5"
+              value="3"
+              class="rating-slider"
+            />
+            <span class="rating-value" id="fair_mindedness_value">3</span>
+          </div>
+        </div>
+
+        <div class="criteria-group">
+          <label for="positive_attitude"
+            >Positive Attitude & Self-Control</label
+          >
+          <div class="rating-input">
+            <input
+              type="range"
+              name="positive_attitude"
+              id="positive_attitude"
+              min="1"
+              max="5"
+              value="3"
+              class="rating-slider"
+            />
+            <span class="rating-value" id="positive_attitude_value">3</span>
+          </div>
+        </div>
+
+        <div class="criteria-group">
+          <label for="communication">Communication</label>
+          <div class="rating-input">
+            <input
+              type="range"
+              name="communication"
+              id="communication"
+              min="1"
+              max="5"
+              value="3"
+              class="rating-slider"
+            />
+            <span class="rating-value" id="communication_value">3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>Awards & Feedback</h2>
+
+      <div class="form-group">
+        <label for="mvp_names">Most Valuable Players (MVP)</label>
+        <input
+          type="text"
+          name="mvp_names"
+          id="mvp_names"
+          placeholder="Enter player names separated by commas (optional)"
+        />
+        <small>e.g., John Smith, Jane Doe</small>
+      </div>
+
+      <div class="form-group">
+        <label for="msp_names">Most Spirited Players (MSP)</label>
+        <input
+          type="text"
+          name="msp_names"
+          id="msp_names"
+          placeholder="Enter player names separated by commas (optional)"
+        />
+        <small>e.g., John Smith, Jane Doe</small>
+      </div>
+
+      <div class="form-group">
+        <label for="feedback">Feedback & Comments</label>
+        <textarea
+          name="feedback"
+          id="feedback"
+          rows="5"
+          placeholder="Any additional feedback or comments about the match..."
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Submit Spirit Form</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Update rating display values
+  document.querySelectorAll(".rating-slider").forEach((slider) => {
+    slider.addEventListener("input", function () {
+      const valueSpan = document.getElementById(this.id + "_value");
+      valueSpan.textContent = this.value;
+    });
+  });
+
+  // Validate form
+  document
+    .querySelector(".spirit-form")
+    .addEventListener("submit", function (e) {
+      const match_id = document.getElementById("match_id").value;
+      const giving_team_id = document.getElementById("giving_team_id").value;
+      const receiving_team_id =
+        document.getElementById("receiving_team_id").value;
+
+      if (!match_id || !giving_team_id || !receiving_team_id) {
+        e.preventDefault();
+        alert("Please select all required fields");
+        return false;
+      }
+
+      if (giving_team_id === receiving_team_id) {
+        e.preventDefault();
+        alert("Your team and opposing team must be different");
+        return false;
+      }
+    });
+</script>
+
+<style>
+  .spirit-form-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+
+  .form-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--primary-color);
+  }
+
+  .form-header h1 {
+    color: var(--primary-color);
+    margin: 0.5rem 0;
+  }
+
+  .form-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+  }
+
+  .form-section {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+  }
+
+  .form-section h2 {
+    margin-top: 0;
+    color: var(--primary-color);
+    font-size: 1.3rem;
+  }
+
+  .form-hint {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-group label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: inherit;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 1rem;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+  }
+
+  .form-group small {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+  }
+
+  .criteria-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .criteria-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .criteria-group label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .rating-input {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .rating-slider {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #ff6b6b, #ffa94d, #51cf66);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .rating-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .rating-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .rating-value {
+    min-width: 2rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--primary-color);
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .form-section {
+      padding: 1rem;
+    }
+  }
+</style>
+
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %} {% block title %}Admin Dashboard - Frisbee Tracker{%
+endblock %} {% block content %}
+<div class="admin-container">
+  <div class="admin-header">
+    <h1>Admin Dashboard</h1>
+    <p>Manage teams, players, and matches</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">Teams</div>
+      <div class="stat-info">
+        <h3>{{ teams_count }}</h3>
+        <p>Teams</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">Players</div>
+      <div class="stat-info">
+        <h3>{{ players_count }}</h3>
+        <p>Players</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">Matches</div>
+      <div class="stat-info">
+        <h3>{{ matches_count }}</h3>
+        <p>Matches</p>
+      </div>
+    </div>
+    <div class="stat-card live">
+      <div class="stat-icon">Live</div>
+      <div class="stat-info">
+        <h3>{{ live_matches|length }}</h3>
+        <p>Live Matches</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-menu">
+    <a href="{{ url_for('admin_teams') }}" class="admin-menu-item">
+      <span class="menu-text">Manage Teams</span>
+    </a>
+    <a href="{{ url_for('admin_players') }}" class="admin-menu-item">
+      <span class="menu-text">Manage Players</span>
+    </a>
+    <a href="{{ url_for('upload_excel') }}" class="admin-menu-item">
+      <span class="menu-text">Upload Excel</span>
+    </a>
+    <a href="{{ url_for('admin_matches') }}" class="admin-menu-item">
+      <span class="menu-text">Manage Matches</span>
+    </a>
+    <a href="{{ url_for('admin_seeding') }}" class="admin-menu-item">
+      <span class="menu-text">Set Seedings</span>
+    </a>
+  </div>
+
+  {% if live_matches %}
+  <div class="live-matches-section">
+    <h2>Live Matches</h2>
+    <div class="matches-list">
+      {% for match in live_matches %}
+      <div class="match-card live">
+        <div class="match-teams">
+          <span class="team-name">{{ match.team1.name }}</span>
+          <span class="match-score"
+            >{{ match.team1_score }} - {{ match.team2_score }}</span
+          >
+          <span class="team-name">{{ match.team2.name }}</span>
+        </div>
+        <div class="match-actions">
+          <a
+            href="{{ url_for('admin_scoring', match_id=match.id) }}"
+            class="btn btn-primary"
+            >Score Match</a
+          >
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

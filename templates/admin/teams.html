@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Teams - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Manage Teams</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+
+    <div class="form-card">
+        <h2>Add New Team</h2>
+        <form method="POST" action="{{ url_for('add_team') }}" class="inline-form">
+            <input type="text" name="name" placeholder="Team Name" required>
+            <button type="submit" class="btn btn-primary">Add Team</button>
+        </form>
+    </div>
+
+    <div class="data-section">
+        <h2>All Teams ({{ teams|length }})</h2>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Team Name</th>
+                        <th>Players</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in teams %}
+                    <tr>
+                        <td><strong>{{ team.name }}</strong></td>
+                        <td>{{ team.players|length }} players</td>
+                        <td>{{ team.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('delete_team', team_id=team.id) }}" style="display: inline;" onsubmit="return confirm('Delete this team and all its players?');">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="empty-state">No teams yet. Add one above!</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

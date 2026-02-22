@@ -1,0 +1,470 @@
+{% extends "base.html" %} {% block title %}Tournament Standings{% endblock %} {%
+block content %}
+<div class="standings-container">
+  <div class="standings-header">
+    <h1>Tournament Standings</h1>
+    <p>View team rankings across different metrics</p>
+  </div>
+
+  <div class="tabs-container">
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="current">
+        Current Standings
+      </button>
+      <button class="tab-btn" data-tab="initial">Initial Seedings</button>
+      <button class="tab-btn" data-tab="spirit">Spirit of the Game</button>
+    </div>
+
+    <!-- Current Standings Tab -->
+    <div class="tab-content active" id="current-tab">
+      <div class="standings-table-wrapper">
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th class="rank">#</th>
+              <th class="team-name">Team</th>
+              <th class="stat">W</th>
+              <th class="stat">L</th>
+              <th class="stat">Diff</th>
+              <th class="stat">Placement</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for standing in current_standings %}
+            <tr>
+              <td class="rank">{{ loop.index }}</td>
+              <td class="team-name">
+                <span class="team-badge">{{ standing.team.name }}</span>
+              </td>
+              <td class="stat">{{ standing.wins }}</td>
+              <td class="stat">{{ standing.losses }}</td>
+              <td
+                class="stat diff {% if standing.point_diff > 0 %}positive{% elif standing.point_diff < 0 %}negative{% endif %}"
+              >
+                {{ standing.point_diff }}
+              </td>
+              <td class="stat">
+                {% if standing.final_placement %}
+                <span class="placement-badge">{{ standing.final_placement }}{{ 'st' if standing.final_placement == 1 else 'nd' if standing.final_placement == 2 else 'rd' if standing.final_placement == 3 else 'th' }}</span>
+                {% else %}
+                <span class="no-data">-</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="empty-state">No matches completed yet</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Initial Seedings Tab -->
+    <div class="tab-content" id="initial-tab">
+      <div class="standings-table-wrapper">
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th class="rank">Seed</th>
+              <th class="team-name">Team</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for standing in initial_standings %}
+            <tr>
+              <td class="rank">
+                <span class="seed-badge">{{ standing.seed }}</span>
+              </td>
+              <td class="team-name">
+                <span class="team-badge">{{ standing.team.name }}</span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="2" class="empty-state">
+                No seedings have been set yet
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Spirit of the Game Tab -->
+    <div class="tab-content" id="spirit-tab">
+      <div class="standings-table-wrapper">
+        <table class="standings-table spirit-table">
+          <thead>
+            <tr>
+              <th class="rank">#</th>
+              <th class="team-name">Team</th>
+              <th class="stat overall">Overall Score</th>
+              <th class="stat">Matches Rated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for standing in spirit_standings %}
+            <tr>
+              <td class="rank">{{ loop.index }}</td>
+              <td class="team-name">
+                <span class="team-badge">{{ standing.team.name }}</span>
+              </td>
+              <td class="stat overall">
+                <strong>{{ standing.scores.overall }}</strong>
+              </td>
+              <td class="stat">{{ standing.match_count }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="empty-state">
+                No spirit scores submitted yet
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="standings-footer">
+    <a href="{{ url_for('spirit_form') }}" class="btn btn-primary"
+      >Submit Spirit Form</a
+    >
+  </div>
+</div>
+
+<script>
+  // Tab switching functionality
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", function () {
+      const tabName = this.getAttribute("data-tab");
+
+      // Remove active class from all buttons and contents
+      document
+        .querySelectorAll(".tab-btn")
+        .forEach((b) => b.classList.remove("active"));
+      document
+        .querySelectorAll(".tab-content")
+        .forEach((c) => c.classList.remove("active"));
+
+      // Add active class to clicked button and corresponding content
+      this.classList.add("active");
+      document.getElementById(tabName + "-tab").classList.add("active");
+
+      // Store preference in localStorage
+      localStorage.setItem("standings-active-tab", tabName);
+    });
+  });
+
+  // Load saved tab preference
+  window.addEventListener("load", function () {
+    const savedTab = localStorage.getItem("standings-active-tab");
+    if (savedTab) {
+      const btn = document.querySelector(`[data-tab="${savedTab}"]`);
+      if (btn) btn.click();
+    }
+  });
+
+  // Auto-refresh spirit standings every 30 seconds
+  setInterval(function () {
+    const activeTab = document
+      .querySelector(".tab-btn.active")
+      .getAttribute("data-tab");
+    if (activeTab === "spirit") {
+      fetch("/api/standings/spirit")
+        .then((response) => response.json())
+        .then((data) => {
+          updateSpiritTable(data);
+        })
+        .catch((error) =>
+          console.error("Error fetching spirit standings:", error),
+        );
+    }
+  }, 30000);
+
+  function updateSpiritTable(data) {
+    const tbody = document.querySelector(".spirit-table tbody");
+    if (!data || data.length === 0) return;
+
+    tbody.innerHTML = data
+      .map(
+        (standing, index) => `
+            <tr>
+                <td class="rank">${index + 1}</td>
+                <td class="team-name">
+                    <span class="team-badge">${standing.team_name}</span>
+                </td>
+                <td class="stat">${standing.scores.rules_knowledge}</td>
+                <td class="stat">${standing.scores.fouls_contact}</td>
+                <td class="stat">${standing.scores.fair_mindedness}</td>
+                <td class="stat">${standing.scores.positive_attitude}</td>
+                <td class="stat">${standing.scores.communication}</td>
+                <td class="stat overall">
+                    <strong>${standing.overall}</strong>
+                </td>
+                <td class="stat">${standing.match_count}</td>
+            </tr>
+        `,
+      )
+      .join("");
+  }
+</script>
+
+<style>
+  .standings-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+
+  .standings-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--primary-color);
+  }
+
+  .standings-header h1 {
+    color: var(--primary-color);
+    margin: 0.5rem 0;
+    font-size: 2.5rem;
+  }
+
+  .standings-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+  }
+
+  .tabs-container {
+    margin-bottom: 2rem;
+  }
+
+  .tabs-nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .tab-btn:hover {
+    color: var(--primary-color);
+  }
+
+  .tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .standings-table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+    background: var(--card-bg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .standings-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .standings-table thead {
+    background: var(--primary-color);
+    color: white;
+  }
+
+  .standings-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .standings-table th.rank {
+    text-align: center;
+    width: 60px;
+  }
+
+  .standings-table th.stat {
+    text-align: center;
+    width: 80px;
+    font-size: 0.9rem;
+  }
+
+  .standings-table th.overall {
+    font-weight: 700;
+    background: var(--primary-dark);
+  }
+
+  .standings-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .standings-table tbody tr:hover {
+    background: rgba(var(--primary-rgb), 0.05);
+  }
+
+  .standings-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .standings-table td.rank {
+    text-align: center;
+    font-weight: 700;
+    color: var(--primary-color);
+    width: 60px;
+  }
+
+  .standings-table td.stat {
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .standings-table td.stat.overall {
+    background: rgba(var(--primary-rgb), 0.1);
+    font-size: 1.1rem;
+  }
+
+  .team-name {
+    font-weight: 600;
+    min-width: 150px;
+  }
+
+  .team-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: rgba(var(--primary-rgb), 0.1);
+    color: var(--primary-color);
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .seed-badge {
+    display: inline-block;
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    text-align: center;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    font-weight: 700;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem !important;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  .spirit-legend {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+  }
+
+  .spirit-legend h3 {
+    margin-top: 0;
+    color: var(--primary-color);
+  }
+
+  .legend-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+
+  .legend-item {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .legend-item .label {
+    font-weight: 700;
+    color: var(--primary-color);
+    min-width: 50px;
+  }
+
+  .legend-item .description {
+    color: var(--text-secondary);
+  }
+
+  .standings-footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  @media (max-width: 768px) {
+    .standings-header h1 {
+      font-size: 1.8rem;
+    }
+
+    .tabs-nav {
+      gap: 0.5rem;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+    }
+
+    .standings-table th,
+    .standings-table td {
+      padding: 0.75rem 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .standings-table th.stat,
+    .standings-table td.stat {
+      width: 50px;
+    }
+
+    .legend-items {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+{% endblock %}

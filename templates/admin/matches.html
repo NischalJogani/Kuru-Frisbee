@@ -1,0 +1,146 @@
+{% extends "base.html" %} {% block title %}Manage Matches - Admin{% endblock %}
+{% block content %}
+<div class="admin-container">
+  <div class="admin-header">
+    <h1>Manage Matches</h1>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary"
+      >← Back to Dashboard</a
+    >
+  </div>
+
+  <div class="form-card">
+    <h2>Schedule New Match</h2>
+    <form method="POST" action="{{ url_for('add_match') }}" class="match-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Team 1</label>
+          <select name="team1_id" required>
+            <option value="">Select Team</option>
+            {% for team in teams %}
+            <option value="{{ team.id }}">{{ team.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Team 2</label>
+          <select name="team2_id" required>
+            <option value="">Select Team</option>
+            {% for team in teams %}
+            <option value="{{ team.id }}">{{ team.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Match Date & Time</label>
+          <input type="datetime-local" name="match_date" required />
+        </div>
+        <div class="form-group">
+          <label>Match Stage</label>
+          <select name="match_stage">
+            <option value="Pool Stage">Pool Stage</option>
+            <option value="Cross Pool">Cross Pool</option>
+            <option value="5th Place Game">5th Place Game</option>
+            <option value="3rd Place Game">3rd Place Game</option>
+            <option value="Finals">Finals</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Duration (minutes)</label>
+          <select name="duration_minutes">
+            <option value="60">60 minutes</option>
+            <option value="75">75 minutes</option>
+            <option value="90">90 minutes</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Game to (points)</label>
+          <input
+            type="number"
+            name="max_score"
+            value="15"
+            min="5"
+            max="50"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" name="location" placeholder="Match Location" />
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Schedule Match</button>
+    </form>
+  </div>
+
+  <div class="data-section">
+    <h2>All Matches ({{ matches|length }})</h2>
+    <div class="matches-list">
+      {% for match in matches %}
+      <div class="match-card {% if match.status == 'live' %}live{% endif %}">
+        <div class="match-header">
+          <span class="match-status status-{{ match.status }}"
+            >{{ match.status|upper }}</span
+          >
+          {% if match.match_stage %}
+          <span class="match-stage-badge">{{ match.match_stage }}</span>
+          {% endif %}
+          <span class="match-date"
+            >{{ match.match_date.strftime('%b %d, %Y %H:%M') }}</span
+          >
+        </div>
+        <div class="match-teams">
+          <span class="team-name">{{ match.team1.name }}</span>
+          <span class="match-score"
+            >{{ match.team1_score }} - {{ match.team2_score }}</span
+          >
+          <span class="team-name">{{ match.team2.name }}</span>
+        </div>
+        {% if match.location %}
+        <div class="match-location">{{ match.location }}</div>
+        {% endif %}
+        <div class="match-actions">
+          <form
+            method="POST"
+            action="{{ url_for('update_match_status', match_id=match.id) }}"
+            style="display: inline"
+          >
+            <select name="status" onchange="this.form.submit()">
+              <option value="scheduled" {% if match.status == "scheduled" %}selected{% endif %}>
+                Scheduled
+              </option>
+              <option value="live" {% if match.status == "live" %}selected{% endif %}>
+                Live
+              </option>
+              <option value="completed" {% if match.status == "completed" %}selected{% endif %}>
+                Completed
+              </option>
+            </select>
+          </form>
+          <a
+            href="{{ url_for('admin_scoring', match_id=match.id) }}"
+            class="btn btn-primary btn-sm"
+            >Score</a
+          >
+          <form
+            method="POST"
+            action="{{ url_for('delete_match', match_id=match.id) }}"
+            style="display: inline"
+            onsubmit="return confirm('Delete this match?');"
+          >
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-state">No matches scheduled yet. Create one above!</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

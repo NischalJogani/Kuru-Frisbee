@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Excel - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Upload Teams & Players (Excel)</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="messages">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="form-card">
+        <h2>📤 Upload Excel File</h2>
+        
+        <div class="info-box" style="margin-bottom: 20px; padding: 15px; background: #e8f4f8; border-left: 4px solid #2196F3; border-radius: 4px;">
+            <h3 style="margin-top: 0;">📋 Excel File Requirements:</h3>
+            <ul style="margin: 10px 0;">
+                <li><strong>File Format:</strong> .xlsx or .xls</li>
+                <li><strong>Required Sheets:</strong>
+                    <ul>
+                        <li><strong>Teams</strong> sheet with columns:
+                            <ul>
+                                <li>Column A: Team Name</li>
+                            </ul>
+                        </li>
+                        <li><strong>Players</strong> sheet with columns:
+                            <ul>
+                                <li>Column A: Player Name</li>
+                                <li>Column B: Team (must match team name from Teams sheet)</li>
+                                <li>Column C: Jersey Number (optional)</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li><strong>First row:</strong> Header row (will be skipped)</li>
+            </ul>
+            
+            <div style="margin-top: 15px; padding: 10px; background: white; border-radius: 4px;">
+                <strong>Example Teams Sheet:</strong>
+                <table style="width: 100%; margin-top: 5px; border-collapse: collapse;">
+                    <tr style="background: #f0f0f0;">
+                        <th style="padding: 5px; border: 1px solid #ddd;">Team Name</th>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; border: 1px solid #ddd;">Team Alpha</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; border: 1px solid #ddd;">Team Beta</td>
+                    </tr>
+                </table>
+                
+                <strong style="display: block; margin-top: 15px;">Example Players Sheet:</strong>
+                <table style="width: 100%; margin-top: 5px; border-collapse: collapse;">
+                    <tr style="background: #f0f0f0;">
+                        <th style="padding: 5px; border: 1px solid #ddd;">Player Name</th>
+                        <th style="padding: 5px; border: 1px solid #ddd;">Team</th>
+                        <th style="padding: 5px; border: 1px solid #ddd;">Jersey Number</th>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; border: 1px solid #ddd;">John Doe</td>
+                        <td style="padding: 5px; border: 1px solid #ddd;">Team Alpha</td>
+                        <td style="padding: 5px; border: 1px solid #ddd;">1</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; border: 1px solid #ddd;">Jane Smith</td>
+                        <td style="padding: 5px; border: 1px solid #ddd;">Team Alpha</td>
+                        <td style="padding: 5px; border: 1px solid #ddd;">2</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="current-stats" style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px;">
+            <h3>Current Database:</h3>
+            <p><strong>Teams:</strong> {{ teams_count }}</p>
+            <p><strong>Players:</strong> {{ players_count }}</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="upload-form">
+            <div class="form-group">
+                <label for="excel_file" style="display: block; margin-bottom: 10px; font-weight: bold;">
+                    Select Excel File:
+                </label>
+                <input type="file" 
+                       id="excel_file" 
+                       name="excel_file" 
+                       accept=".xlsx,.xls" 
+                       required
+                       style="display: block; margin-bottom: 10px; padding: 10px; border: 2px solid #ddd; border-radius: 4px; width: 100%;">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="font-size: 16px; padding: 12px 30px;">
+                📤 Upload and Import
+            </button>
+        </form>
+
+        <div class="help-section" style="margin-top: 30px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+            <h3 style="margin-top: 0;">💡 Tips:</h3>
+            <ul style="margin: 10px 0;">
+                <li>Make sure sheet names are exactly "Teams" and "Players"</li>
+                <li>Team names must match exactly between Teams and Players sheets</li>
+                <li>Duplicate team names will be skipped</li>
+                <li>Players without valid team names will be skipped</li>
+                <li>Jersey numbers are optional</li>
+                <li>Any errors will be shown after upload</li>
+            </ul>
+        </div>
+
+        <div class="quick-links" style="margin-top: 20px;">
+            <a href="{{ url_for('admin_teams') }}" class="btn btn-secondary">View Teams</a>
+            <a href="{{ url_for('admin_players') }}" class="btn btn-secondary" style="margin-left: 10px;">View Players</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.alert {
+    padding: 12px 20px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+    color: #856404;
+}
+
+.messages {
+    margin-bottom: 20px;
+}
+
+.upload-form input[type="file"] {
+    cursor: pointer;
+}
+
+.upload-form input[type="file"]:hover {
+    border-color: #2196F3;
+}
+</style>
+{% endblock %}

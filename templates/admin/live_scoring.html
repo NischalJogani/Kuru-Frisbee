@@ -1,0 +1,557 @@
+{% extends "base.html" %}
+
+{% block title %}Live Scoring - {{ match.team1.name }} vs {{ match.team2.name }}{% endblock %}
+
+{% block content %}
+<script>
+  // Define all players array
+  const allPlayers = [
+    {% for player in team1_players %}
+    {id: {{ player.id }}, name: '{{ player.name }}', team_id: {{ player.team_id }}},
+    {% endfor %}
+    {% for player in team2_players %}
+    {id: {{ player.id }}, name: '{{ player.name }}', team_id: {{ player.team_id }}},
+    {% endfor %}
+  ];
+
+  function openScoreModal(playerId, playerName, teamId) {
+      const modal = document.getElementById('scoreModal');
+      const scorerDisplay = document.getElementById('scorerDisplay');
+      const scorerId = document.getElementById('scorerId');
+      const assistSelect = document.getElementById('assistSelect');
+
+      // Set scorer
+      scorerDisplay.value = playerName;
+      scorerId.value = playerId;
+
+      // Populate assist dropdown with same team players (excluding scorer)
+      assistSelect.innerHTML = '<option value="">None</option>';
+      allPlayers.forEach(player => {
+          if (player.team_id == teamId && player.id != playerId) {
+              const option = document.createElement('option');
+              option.value = player.id;
+              option.textContent = player.name;
+              assistSelect.appendChild(option);
+          }
+      });
+
+      modal.style.display = 'flex';
+  }
+
+  function closeModal() {
+      document.getElementById('scoreModal').style.display = 'none';
+  }
+
+  function updateAssistDropdown() {
+      const scorerSelect = document.getElementById('scorer_id');
+      const assistSelect = document.getElementById('assist_id');
+      const scorerId = scorerSelect.value;
+
+      if (!scorerId) {
+          assistSelect.innerHTML = '<option value="">None (no assist)</option>';
+          return;
+      }
+
+      // Find the scorer to get their team
+      const scorer = allPlayers.find(p => p.id == scorerId);
+      if (!scorer) return;
+
+      // Populate assist dropdown with same team players (excluding scorer)
+      assistSelect.innerHTML = '<option value="">None (no assist)</option>';
+      allPlayers.forEach(player => {
+          if (player.team_id == scorer.team_id && player.id != scorerId) {
+              const option = document.createElement('option');
+              option.value = player.id;
+              option.textContent = player.name;
+              assistSelect.appendChild(option);
+          }
+      });
+  }
+
+  // Close modal when clicking outside
+  window.onclick = function(event) {
+      const modal = document.getElementById('scoreModal');
+      if (event.target == modal) {
+          closeModal();
+      }
+  }
+</script>
+
+<div class="scoring-container">
+  <div class="scoring-header">
+    <a href="{{ url_for('admin_matches') }}" class="btn btn-secondary"
+      >← Back to Matches</a
+    >
+    <h1>Live Scoring</h1>
+    <span class="match-status status-{{ match.status }}"
+      >{{ match.status|upper }}</span
+    >
+  </div>
+
+  <!-- Match Info Display -->
+  <div class="match-info-bar">
+    <div class="score-target">Game to {{ match.max_score }}</div>
+    <div class="gender-ratio-display">
+      <span id="ratio-display">
+        {% if match.gender_ratio %}
+        {% set current_ratios = match.get_current_ratio() %}
+        Current Ratio: {{ current_ratios['team1']|replace('_', ' ')|title }}
+        {% else %}
+        Ratio: Not Set
+        {% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Scoreboard -->
+  <div class="scoreboard">
+    <div class="team-score-section">
+      <div
+        class="possession-tag {% if match.current_offense_team_id == match.team1_id %}offense{% elif match.current_defense_team_id == match.team1_id %}defense{% endif %}"
+      >
+        {% if match.current_offense_team_id == match.team1_id %} OFFENSE {%
+        elif match.current_defense_team_id == match.team1_id %} DEFENSE {%
+        else %} NOT SET {% endif %}
+      </div>
+      {% if match.status == 'live' and match.gender_ratio %}
+      {% set current_ratios = match.get_current_ratio() %}
+      <div class="ratio-tag" id="team1-ratio">
+        {{ current_ratios['team1']|replace('_', ' ')|title }}
+      </div>
+      {% endif %}
+      <h2 class="team-name">{{ match.team1.name }}</h2>
+      <div class="score-display">{{ match.team1_score }}</div>
+    </div>
+
+    <div class="vs-divider">VS</div>
+
+    <div class="team-score-section">
+      <div
+        class="possession-tag {% if match.current_offense_team_id == match.team2_id %}offense{% elif match.current_defense_team_id == match.team2_id %}defense{% endif %}"
+      >
+        {% if match.current_offense_team_id == match.team2_id %} OFFENSE {%
+        elif match.current_defense_team_id == match.team2_id %} DEFENSE {%
+        else %} NOT SET {% endif %}
+      </div>
+      {% if match.status == 'live' and match.gender_ratio %}
+      <div class="ratio-tag" id="team2-ratio">
+        {{ current_ratios['team2']|replace('_', ' ')|title }}
+      </div>
+      {% endif %}
+      <h2 class="team-name">{{ match.team2.name }}</h2>
+      <div class="score-display">{{ match.team2_score }}</div>
+    </div>
+  </div>
+
+  <!-- Match Controls -->
+  {% if match.status == 'scheduled' %}
+  <div class="match-controls">
+    <h3>Start Match</h3>
+    <form
+      method="POST"
+      action="{{ url_for('start_match', match_id=match.id) }}"
+      class="start-form"
+    >
+      <div class="form-row">
+        <div class="form-group">
+          <label>Starting Offense Team:</label>
+          <select name="offense_team_id" required>
+            <option value="">Choose team on offense...</option>
+            <option value="{{ match.team1_id }}">{{ match.team1.name }}</option>
+            <option value="{{ match.team2_id }}">{{ match.team2.name }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Gender Ratio:</label>
+          <select name="gender_ratio" required>
+            <option value="">Choose ratio...</option>
+            <option value="4:3_boys">4:3 Boys</option>
+            <option value="4:3_girls">4:3 Girls</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-success btn-large">
+        Start Match
+      </button>
+    </form>
+  </div>
+  {% elif match.status == 'live' %}
+  <div class="match-controls">
+    <div class="control-buttons">
+      <form
+        method="POST"
+        action="{{ url_for('set_possession', match_id=match.id) }}"
+        class="inline-form"
+      >
+        <label>Set Offense:</label>
+        <select name="offense_team_id" required>
+          <option value="{{ match.team1_id }}" {% if match.current_offense_team_id == match.team1_id %}selected{% endif %}>
+            {{ match.team1.name }}
+          </option>
+          <option value="{{ match.team2_id }}" {% if match.current_offense_team_id == match.team2_id %}selected{% endif %}>
+            {{ match.team2.name }}
+          </option>
+        </select>
+        <button type="submit" class="btn btn-info btn-sm">Update</button>
+      </form>
+      <form
+        method="POST"
+        action="{{ url_for('set_ratio', match_id=match.id) }}"
+        class="inline-form"
+      >
+        <label>Set Ratio:</label>
+        <select name="gender_ratio" required>
+          <option value="4:3_boys" {% if match.gender_ratio == '4:3_boys' %}selected{% endif %}>4:3 Boys</option>
+          <option value="4:3_girls" {% if match.gender_ratio == '4:3_girls' %}selected{% endif %}>4:3 Girls</option>
+        </select>
+        <button type="submit" class="btn btn-info btn-sm">Update Ratio</button>
+      </form>
+      <form
+        method="POST"
+        action="{{ url_for('end_match', match_id=match.id) }}"
+        class="inline-form"
+        onsubmit="return confirm('Are you sure you want to end this match?');"
+      >
+        <button type="submit" class="btn btn-danger btn-sm">End Match</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="scoring-grid">
+    <div class="team-panel">
+      <h3>{{ match.team1.name }} Players</h3>
+      <div class="player-buttons">
+        {% for player in team1_players %}
+        <div class="player-card">
+          <div class="player-info">
+            <span class="player-number">{{ player.jersey_number or '#' }}</span>
+            <span class="player-name">{{ player.name }}</span>
+          </div>
+          <div class="player-stats" style="font-size: 1.2em; font-weight bold">
+            <span class="stat"
+              >Goals: {{ player.scores|selectattr('match_id', 'equalto',
+              match.id)|selectattr('action_type', 'equalto',
+              'score')|sum(attribute='points') or 0 }}</span
+            >
+            <span class="stat"
+              >Assists: {{ player.assists|selectattr('match_id', 'equalto',
+              match.id)|list|length }}</span
+            >
+          </div>
+          <div class="action-buttons">
+            <button
+              class="btn btn-success btn-sm"
+              onclick="openScoreModal({{ player.id }}, '{{ player.name }}', {{ match.team1_id }})"
+            >
+              Record Score
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="team-panel">
+      <h3>{{ match.team2.name }} Players</h3>
+      <div class="player-buttons">
+        {% for player in team2_players %}
+        <div class="player-card">
+          <div class="player-info">
+            <span class="player-number">{{ player.jersey_number or '#' }}</span>
+            <span class="player-name">{{ player.name }}</span>
+          </div>
+          <div class="player-stats" style="font-size: 1.2em; font-weight: bold">
+            <span class="stat"
+              >Goals: {{ player.scores|selectattr('match_id', 'equalto',
+              match.id)|selectattr('action_type', 'equalto',
+              'score')|sum(attribute='points') or 0 }}</span
+            >
+            <span class="stat"
+              >Assists: {{ player.assists|selectattr('match_id', 'equalto',
+              match.id)|list|length }}</span
+            >
+          </div>
+          <div class="action-buttons">
+            <button
+              class="btn btn-success btn-sm"
+              onclick="openScoreModal({{ player.id }}, '{{ player.name }}', {{ match.team2_id }})"
+            >
+              Record Score
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Score Modal -->
+  <div id="scoreModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Record Score</h3>
+        <button onclick="closeModal()" class="modal-close">&times;</button>
+      </div>
+      <form
+        method="POST"
+        action="{{ url_for('add_action', match_id=match.id) }}"
+        id="scoreForm"
+      >
+        <input type="hidden" name="action_type" value="score" />
+        <input type="hidden" name="points" value="1" />
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Scorer</label>
+            <input type="text" id="scorerDisplay" readonly />
+            <input type="hidden" name="player_id" id="scorerId" />
+          </div>
+
+          <div class="form-group">
+            <label>Assisted By (Optional)</label>
+            <select name="assist_player_id" id="assistSelect">
+              <option value="">None</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            onclick="closeModal()"
+            class="btn btn-secondary"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">Record Score</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="score-log">
+    <h3>Activity Log</h3>
+    <div class="log-entries">
+      {% for score in scores %}
+      <div class="log-entry">
+        <span class="log-time">{{ score.timestamp.strftime('%H:%M:%S') }}</span>
+        {% if score.action_type == 'score' %}
+        <span class="log-player">{{ score.player.name }}</span>
+        <span class="log-team">({{ score.player.team.name }})</span>
+        <span class="log-points"
+          >+{{ score.points }} point{{ 's' if score.points != 1 else ''
+          }}</span
+        >
+        {% if score.assist_by %}
+        <span class="log-assist">Assist: {{ score.assist_by.name }}</span>
+        {% endif %}
+        {% endif %}
+        <form
+          method="POST"
+          action="{{ url_for('undo_action', match_id=match.id, score_id=score.id) }}"
+          style="display: inline"
+        >
+          <button
+            type="submit"
+            class="btn btn-danger btn-xs"
+            onclick="return confirm('Undo this action?');"
+          >
+            Undo
+          </button>
+        </form>
+      </div>
+      {% else %}
+      <div class="empty-state">No activity yet. Start tracking above!</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+  let selectedPlayerId = null;
+  let selectedPlayerName = null;
+  let selectedTeamId = null;
+
+  const allPlayers = [
+      {% for player in team1_players %}
+      {id: {{ player.id }}, name: '{{ player.name }}', team: '{{ player.team.name }}', teamId: {{ match.team1_id }}},
+      {% endfor %}
+      {% for player in team2_players %}
+      {id: {{ player.id }}, name: '{{ player.name }}', team: '{{ player.team.name }}', teamId: {{ match.team2_id }}},
+      {% endfor %}
+  ];
+
+  function openScoreModal(playerId, playerName, teamId) {
+      selectedPlayerId = playerId;
+      selectedPlayerName = playerName;
+      selectedTeamId = teamId;
+
+      document.getElementById('scorerDisplay').value = playerName;
+      document.getElementById('scorerId').value = playerId;
+
+      // Populate assist dropdown with teammates only
+      const assistSelect = document.getElementById('assistSelect');
+      assistSelect.innerHTML = '<option value="">None</option>';
+
+      allPlayers.filter(p => p.teamId === teamId && p.id !== playerId).forEach(player => {
+          const option = document.createElement('option');
+          option.value = player.id;
+          option.textContent = player.name;
+          assistSelect.appendChild(option);
+      });
+
+      document.getElementById('scoreModal').style.display = 'flex';
+  }
+
+  function closeModal() {
+      document.getElementById('scoreModal').style.display = 'none';
+  }
+
+  // Close modal when clicking outside
+  window.onclick = function(event) {
+      const modal = document.getElementById('scoreModal');
+      if (event.target == modal) {
+          closeModal();
+      }
+  }
+
+  // Live updates using AJAX API - doesn't close modal
+  let lastScoreCount = 0;
+
+  // Live updates using AJAX API
+  let lastScoreCount = 0;
+
+  // Update gender ratio display when scoring
+  function updateGenderRatio() {
+      fetch('/api/match/{{ match.id }}/ratio')
+          .then(response => response.json())
+          .then(data => {
+              const ratioText = document.getElementById('ratio-text');
+              if (ratioText) {
+                  if (data.ratio) {
+                      // Format ratio: "4:3_boys" -> "4:3 Boys"
+                      const formatted = data.ratio.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      ratioText.textContent = 'Current Ratio: ' + formatted;
+                  } else {
+                      ratioText.textContent = 'Ratio: Not Set';
+                  }
+              }
+          })
+          .catch(error => console.error('Error updating ratio:', error));
+  }
+
+  // Modified updateLiveData to also update gender ratio
+  const baseUpdateInterval = 3000;
+  function updateLiveData() {
+      // Don't update if modal is open
+      const modal = document.getElementById('scoreModal');
+      if (modal && modal.style.display === 'flex') {
+          return;
+      }
+
+      fetch('/api/match/{{ match.id }}/scores')
+          .then(response => response.json())
+          .then(data => {
+              // Update scoreboard
+              const scoreDisplays = document.querySelectorAll('.score-display');
+              if (scoreDisplays.length >= 2) {
+                  scoreDisplays[0].textContent = data.team1_score;
+                  scoreDisplays[1].textContent = data.team2_score;
+              }
+
+              // Update possession tags
+              const possessionTags = document.querySelectorAll('.possession-tag');
+              if (possessionTags.length >= 2 && data.current_offense_team_id && data.current_defense_team_id) {
+                  // Update team 1 possession
+                  if (data.current_offense_team_id === {{ match.team1_id }}) {
+                      possessionTags[0].className = 'possession-tag offense';
+                      possessionTags[0].textContent = 'OFFENSE';
+                  } else if (data.current_defense_team_id === {{ match.team1_id }}) {
+                      possessionTags[0].className = 'possession-tag defense';
+                      possessionTags[0].textContent = 'DEFENSE';
+                  }
+
+                  // Update team 2 possession
+                  if (data.current_offense_team_id === {{ match.team2_id }}) {
+                      possessionTags[1].className = 'possession-tag offense';
+                      possessionTags[1].textContent = 'OFFENSE';
+                  } else if (data.current_defense_team_id === {{ match.team2_id }}) {
+                      possessionTags[1].className = 'possession-tag defense';
+                      possessionTags[1].textContent = 'DEFENSE';
+                  }
+              }
+
+              // Update current ratio display
+              if (data.team1_ratio) {
+                  const ratioDisplay = document.getElementById('ratio-display');
+                  if (ratioDisplay) {
+                      const formattedRatio = data.team1_ratio.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      ratioDisplay.textContent = 'Current Ratio: ' + formattedRatio;
+                  }
+              }
+
+              // Update team ratios
+              if (data.team1_ratio) {
+                  const team1Ratio = document.getElementById('team1-ratio');
+                  if (team1Ratio) {
+                      const formattedRatio = data.team1_ratio.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      team1Ratio.textContent = formattedRatio;
+                  }
+              }
+              if (data.team2_ratio) {
+                  const team2Ratio = document.getElementById('team2-ratio');
+                  if (team2Ratio) {
+                      const formattedRatio = data.team2_ratio.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      team2Ratio.textContent = formattedRatio;
+                  }
+              }
+
+              // Check if max score reached
+              const maxScore = {{ match.max_score }};
+              if (data.team1_score >= maxScore || data.team2_score >= maxScore) {
+                  stopTimer();
+              }
+
+              // Update activity log only if new scores added
+              if (data.scores.length !== lastScoreCount) {
+                  lastScoreCount = data.scores.length;
+                  const logEntries = document.querySelector('.log-entries');
+                  if (logEntries && data.scores.length > 0) {
+                      logEntries.innerHTML = data.scores.map(score => {
+                          let actionText = '';
+                          if (score.action_type === 'score') {
+                              actionText = `<span class="log-points">+${score.points} point${score.points !== 1 ? 's' : ''}</span>`;
+                              if (score.assist_by) {
+                                  actionText += `<span class="log-assist">Assist: ${score.assist_by}</span>`;
+                              }
+                          }
+
+                          return `
+                              <div class="log-entry">
+                                  <span class="log-time">${score.timestamp}</span>
+                                  <span class="log-player">${score.player_name}</span>
+                                  <span class="log-team">(${score.team_name})</span>
+                                  ${actionText}
+                                  <form method="POST" action="/admin/scoring/{{ match.id }}/undo/${score.id}" style="display: inline;">
+                                      <button type="submit" class="btn btn-danger btn-xs" onclick="return confirm('Undo this action?');">Undo</button>
+                                  </form>
+                              </div>
+                          `;
+                      }).join('');
+                  } else if (logEntries && data.scores.length === 0) {
+                      logEntries.innerHTML = '<div class="empty-state">No activity yet. Start tracking above!</div>';
+                  }
+
+                  // Update gender ratio when score count changes
+                  updateGenderRatio();
+              }
+          })
+          .catch(error => console.error('Error updating live data:', error));
+  }
+
+  // Update every 3 seconds
+  setInterval(updateLiveData, baseUpdateInterval);
+  updateLiveData(); // Initial load
+</script>
+
+{% endblock %}
